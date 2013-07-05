@@ -4,10 +4,10 @@
 class Sequel_Exception extends Exception {}
 
 class Sequel {
-    private $DB;
+    private $Connection;
 
-    function __construct($connection) {
-        $this->DB = $connection;
+    function __construct($Connection) {
+        $this->Connection = $Connection;
     }
 
     private function query_type($query) {
@@ -21,19 +21,19 @@ class Sequel {
     }
 
     function query($query, array $values = array()) {
-        $Results = $this->DB->prepare($query);
+        $Results = $this->Connection->prepare($query);
         $Results->execute($values);
         $type = $this->query_type($query);
         if($type === "SELECT") {
             return new Sequel_Results(array(
                 "results" => $Results,
-                "statement" => $query,
+                "query" => $query,
                 "values" => $values,
-                "connection" => $this->DB
+                "connection" => $this->Connection
             ));
         }
         else if($type === "INSERT") {
-            return $this->DB->lastInsertId();
+            return $this->Connection->lastInsertId();
         }
     }
 }
@@ -42,7 +42,7 @@ class Sequel {
 //Results Set Wrapper returned by calls to select
 class Sequel_Results implements Iterator {
     private $Results,
-            $DB,
+            $Connection,
             $predicate,
             $values,
             $count = null,
@@ -51,16 +51,15 @@ class Sequel_Results implements Iterator {
 
     function __construct(array $fig = array()) {
         $this->Results = $fig['results'];
-        $this->predicate = $this->extract_select_predicate($fig['statement']);
+        $this->predicate = substr(
+            $fig['query'],
+            strpos(strtoupper($fig['query']), "FROM")
+        );
         $this->values = $fig['values'];
-        $this->DB = $fig['connection'];
+        $this->Connection = $fig['connection'];
 
         $this->Results->setFetchMode(PDO::FETCH_ASSOC);
         $this->next();
-    }
-
-    private function extract_select_predicate($query) {
-        return substr($query, strpos(strtoupper($query), "FROM"));
     }
 
     function to_array() {
@@ -75,7 +74,7 @@ class Sequel_Results implements Iterator {
     function count() {
         if($this->count === null) {
             $sql= "SELECT count(*) " . $this->predicate;
-            $sth = $this->DB->prepare($sql);
+            $sth = $this->Connection->prepare($sql);
             $sth->execute($this->values);
             $rows = $sth->fetch(\PDO::FETCH_NUM);
             $this->count = $rows[0];
@@ -85,7 +84,7 @@ class Sequel_Results implements Iterator {
 
     function rewind() {
         if($this->key !== 0) {
-            throw new Exception("Sequel_Results does not support rewind.");
+            throw new Sequel_Exception("Sequel_Results does not support rewind.");
         }
     }
 

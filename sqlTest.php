@@ -47,7 +47,6 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
 
     function test_results_foreach_loop() {
         $actualResults = array();
-        //foreach($this->Sql->select("* FROM A") as $key => $val) {
         foreach($this->Sql->query("SELECT * FROM A") as $key => $val) {
             $actualResults[$key] = $val;
         }
@@ -74,7 +73,7 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
     }
 
     /**
-     * @expectedException Exception
+     * @expectedException Sequel_Exception
      * @expectedExceptionMessage Sequel_Results does not support rewind.
      */
     function test_results_foreach_loop_next_allready_called() {

@@ -7,9 +7,7 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
 
     function setUp() {
         $this->DB = new PDO("sqlite::memory:");
-        $this->Sql = new Sequel(array(
-            "connection" => $this->DB
-        ));
+        $this->Sql = new Sequel($this->DB);
         $this->create_database();
         $this->insert_default_rows();
     }
@@ -25,24 +23,32 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
     }
 
     private function insert_default_rows() {
-        $this->DB->prepare("INSERT INTO A (id, a, b) VALUES (?, ?, ?)")->execute(array(1, "foo", 5));
-        $this->DB->prepare("INSERT INTO A (id, a, b) VALUES (?, ?, ?)")->execute(array(2, "bar", 6));
+        $this->DB->prepare(
+            "INSERT INTO A (id, a, b) VALUES (?, ?, ?)"
+        )->execute(array(1, "foo", 5));
+        $this->DB->prepare(
+            "INSERT INTO A (id, a, b) VALUES (?, ?, ?)"
+        )->execute(array(2, "bar", 6));
     }
 
 
     function test_results_count() {
-        $Results = $this->Sql->select("* FROM A");
+        $Results = $this->Sql->query("sElecT * FROM A");
         $this->assertEquals(2, $Results->count());
     }
 
     function test_results_next() {
-        $Results = $this->Sql->select("* FROM A");
-        $this->assertEquals(array("id" => 1,"a" => "foo", "b" => 5), $Results->next());
+        $Results = $this->Sql->query("SELECT * FROM A");
+        $this->assertEquals(
+            array("id" => 1,"a" => "foo", "b" => 5),
+            $Results->next()
+        );
     }
 
     function test_results_foreach_loop() {
         $actualResults = array();
-        foreach($this->Sql->select("* FROM A") as $key => $val) {
+        //foreach($this->Sql->select("* FROM A") as $key => $val) {
+        foreach($this->Sql->query("SELECT * FROM A") as $key => $val) {
             $actualResults[$key] = $val;
         }
 
@@ -56,7 +62,10 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
     }
 
     function test_results_foreach_loop_empty_results() {
-        $ResultsObject = $this->Sql->select("* FROM A WHERE a = ?", array("wrong"));
+        $ResultsObject = $this->Sql->query(
+            "SELECT * FROM A WHERE a = ?",
+            array("wrong")
+        );
         $actualResults = array();
         foreach($ResultsObject as $key => $val) {
             $actualResults[$key] = $val;
@@ -69,7 +78,7 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
      * @expectedExceptionMessage Sequel_Results does not support rewind.
      */
     function test_results_foreach_loop_next_allready_called() {
-        $ResultsObject = $this->Sql->select("* FROM A");
+        $ResultsObject = $this->Sql->query("SELECT * FROM A");
         $ResultsObject->next();
         $actualResults = array();
         foreach($ResultsObject as $key => $val) {
@@ -78,7 +87,10 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
     }
 
     function test_insert() {
-        $this->Sql->insert("A (id, a, b) VALUES (? ,?, ?)", array(3, "baz", 7));
+        $this->Sql->query(
+            "INSERT INTO A (id, a, b) VALUES (? ,?, ?)",
+            array(3, "baz", 7)
+        );
         $Results = $this->DB->query("SELECT * FROM A WHERE id='3'");
         $Results->setFetchMode(PDO::FETCH_ASSOC);
         $this->assertEquals(
@@ -88,12 +100,15 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
     }
 
     function test_insert_id() {
-        $id = $this->Sql->insert("A (id, a, b) VALUES (? ,?, ?)", array(3, "baz", 7));
+        $id = $this->Sql->query(
+            "INSERT INTO A (id, a, b) VALUES (? ,?, ?)",
+            array(3, "baz", 7)
+        );
         $this->assertEquals(3, $id);
     }
 
     function test_update() {
-        $this->Sql->update("A SET a = 'edit' WHERE id='1'");
+        $this->Sql->query("UPDATE A SET a = 'edit' WHERE id='1'");
         $Results = $this->DB->query("SELECT * FROM A WHERE id='1'");
         $Results->setFetchMode(PDO::FETCH_ASSOC);
         $this->assertEquals(
@@ -103,7 +118,7 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
     }
 
     function test_delete() {
-        $this->Sql->delete("A WHERE id='1'");
+        $this->Sql->query("DELETE FROM A WHERE id='1'");
         $Results = $this->DB->query("SELECT * FROM A WHERE id='1'");
         $this->assertEquals(
             false,
@@ -112,7 +127,7 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
     }
 
     function test_results_to_array() {
-        $ResultsObject = $this->Sql->select("* FROM A");
+        $ResultsObject = $this->Sql->query("SELECT * FROM A");
         $this->assertEquals(
             array(
                 array("id" => 1, "a" => "foo", "b" => 5),

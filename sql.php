@@ -1,36 +1,40 @@
 <?php
 //Wrapper to abstract the method of database access
 //(currently implented with PDO)
+class Sequel_Exception extends Exception {}
+
 class Sequel {
     private $DB;
 
-    function __construct(array $fig = array()) {
-        $this->DB = $fig['connection'];
+    function __construct($connection) {
+        $this->DB = $connection;
     }
 
-    function select($query, array $values = array()) {
-        $statement = "SELECT $query";
-        $Results = $this->DB->prepare($statement);
+    private function query_type($query) {
+        $words = explode(" ", $query);
+        if($words) {
+            return strtoupper($words[0]);
+        }
+        else {
+            throw new Sequel_Exception("Invalid Query");
+        }
+    }
+
+    function query($query, array $values = array()) {
+        $Results = $this->DB->prepare($query);
         $Results->execute($values);
-        return new Sequel_Results(array(
-            "results" => $Results,
-            "statement" => $statement,
-            "values" => $values,
-            "connection" => $this->DB
-        ));
-    }
-
-    function insert($query, array $values = array()) {
-        $this->DB->prepare("INSERT INTO $query")->execute($values);
-        return $this->DB->lastInsertId();
-    }
-
-    function update($query, array $values = array()) {
-        $this->DB->prepare("UPDATE $query")->execute($values);
-    }
-
-    function delete($query, array $values = array()) {
-        $this->DB->prepare("DELETE FROM $query")->execute($values);
+        $type = $this->query_type($query);
+        if($type === "SELECT") {
+            return new Sequel_Results(array(
+                "results" => $Results,
+                "statement" => $query,
+                "values" => $values,
+                "connection" => $this->DB
+            ));
+        }
+        else if($type === "INSERT") {
+            return $this->DB->lastInsertId();
+        }
     }
 }
 
@@ -56,7 +60,7 @@ class Sequel_Results implements Iterator {
     }
 
     private function extract_select_predicate($query) {
-        return substr($query, strpos($query, "FROM"));
+        return substr($query, strpos(strtoupper($query), "FROM"));
     }
 
     function to_array() {

@@ -74,7 +74,7 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
 
     /**
      * @expectedException Sequel_Exception
-     * @expectedExceptionMessage Sequel_Results does not support rewind.
+     * @expectedExceptionMessage Does not support rewind.
      */
     function test_results_foreach_loop_next_allready_called() {
         $ResultsObject = $this->Sql->query("SELECT * FROM A");
@@ -83,6 +83,20 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
         foreach($ResultsObject as $key => $val) {
             $actualResults[$key] = $val;
         }
+    }
+
+    function test_first() {
+        $this->assertEquals(
+            $this->Sql->first("SELECT * FROM A WHERE a = 'foo'"),
+            array("id" => 1, "a" => "foo", "b" => 5)
+        );
+    }
+
+    function test_first_no_result() {
+        $this->assertEquals(
+            $this->Sql->first("SELECT * FROM A WHERE a = 'wrong'"),
+            false
+        );
     }
 
     function test_insert() {

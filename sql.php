@@ -21,12 +21,12 @@ class Sequel {
     }
 
     function query($query, array $values = array()) {
-        $Results = $this->Connection->prepare($query);
-        $Results->execute($values);
+        $Statement = $this->Connection->prepare($query);
+        $isSuccess = $Statement->execute($values);
         $type = $this->query_type($query);
         if($type === "SELECT") {
             return new Sequel_Results(array(
-                "results" => $Results,
+                "results" => $Statement,
                 "query" => $query,
                 "values" => $values,
                 "connection" => $this->Connection
@@ -35,6 +35,13 @@ class Sequel {
         else if($type === "INSERT") {
             return $this->Connection->lastInsertId();
         }
+        else {
+            return $isSuccess;
+        }
+    }
+
+    function first($query, array $values = array()) {
+        return $this->query($query, $values)->next();
     }
 }
 
@@ -84,7 +91,7 @@ class Sequel_Results implements Iterator {
 
     function rewind() {
         if($this->key !== 0) {
-            throw new Sequel_Exception("Sequel_Results does not support rewind.");
+            throw new Sequel_Exception("Does not support rewind.");
         }
     }
 

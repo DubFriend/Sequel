@@ -85,17 +85,31 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
         }
     }
 
-    function test_first() {
+    function test_one() {
         $this->assertEquals(
-            $this->Sql->first("SELECT * FROM A WHERE a = 'foo'"),
+            $this->Sql->one("SELECT * FROM A WHERE a = 'foo'"),
             array("id" => 1, "a" => "foo", "b" => 5)
         );
     }
 
-    function test_first_no_result() {
+    function test_one_no_result() {
         $this->assertEquals(
-            $this->Sql->first("SELECT * FROM A WHERE a = 'wrong'"),
+            $this->Sql->one("SELECT * FROM A WHERE a = 'wrong'"),
             false
+        );
+    }
+
+    function test_get() {
+        $this->assertEquals(
+            $this->Sql->get("A", array("a" => "foo"))->to_array(),
+            array(array("id" => 1, "a" => "foo", "b" => 5))
+        );
+    }
+
+    function test_get_one() {
+        $this->assertEquals(
+            $this->Sql->get_one("A", array("a" => "foo")),
+            array("id" => 1, "a" => "foo", "b" => 5)
         );
     }
 

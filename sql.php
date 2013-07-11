@@ -40,7 +40,22 @@ class Sequel {
         }
     }
 
-    function first($query, array $values = array()) {
+    function get($table, array $whereEquals = array()) {
+        $whereArray = array();
+        foreach($whereEquals as $key => $value) {
+            $whereArray[] = "$key = ?";
+        }
+        return $this->query(
+            "SELECT * FROM $table WHERE " . implode(" AND ", $whereArray),
+            array_values($whereEquals)
+        );
+    }
+
+    function get_one($table, array $whereEquals = array()) {
+        return $this->get($table, $whereEquals)->next();
+    }
+
+    function one($query, array $values = array()) {
         return $this->query($query, $values)->next();
     }
 }

@@ -4,10 +4,11 @@
 class Sequel_Exception extends Exception {}
 
 class Sequel {
-    private $Connection;
+    private $Connection, $table;
 
-    function __construct($Connection) {
+    function __construct($Connection, $defaultTable = null) {
         $this->Connection = $Connection;
+        $this->table = null;
     }
 
     private function query_type($query) {
@@ -61,14 +62,17 @@ class Sequel {
 }
 
 
+
 //Results Set Wrapper returned by calls to select
 class Sequel_Results implements Iterator {
-    private $Results,
-            $Connection,
+    private $Connection,
             $predicate,
             $values,
+
+            $Results,
+            $isIterationStarted = false,
             $count = null,
-            $key = -1,
+            $key = 0,
             $current;
 
     function __construct(array $fig = array()) {
@@ -79,9 +83,7 @@ class Sequel_Results implements Iterator {
         );
         $this->values = $fig['values'];
         $this->Connection = $fig['connection'];
-
         $this->Results->setFetchMode(PDO::FETCH_ASSOC);
-        $this->next();
     }
 
     function to_array() {
@@ -104,8 +106,14 @@ class Sequel_Results implements Iterator {
         return $this->count;
     }
 
+    //Iterator Interface...
+
     function rewind() {
-        if($this->key !== 0) {
+        if(!$this->isIterationStarted) {
+            $this->isIterationStarted = true;
+            $this->current = $this->Results->fetch();
+        }
+        else {
             throw new Sequel_Exception("Does not support rewind.");
         }
     }
@@ -123,10 +131,10 @@ class Sequel_Results implements Iterator {
     }
 
     function next() {
+        $this->isIterationStarted = true;
         $this->key += 1;
-        $hold = $this->current;
         $this->current = $this->Results->fetch();
-        return $hold;
+        return $this->current;
     }
 }
 ?>

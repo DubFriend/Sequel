@@ -4,11 +4,10 @@
 class Sequel_Exception extends Exception {}
 
 class Sequel {
-    private $Connection, $table;
+    private $Connection;
 
-    function __construct($Connection, $defaultTable = null) {
+    function __construct($Connection) {
         $this->Connection = $Connection;
-        $this->table = null;
     }
 
     private function query_type($query) {
@@ -65,6 +64,50 @@ class Sequel {
 
 
 
+
+
+//Results Set Wrapper returned by calls to select
+class Sequel_Results implements Iterator {
+    private $Counter, $Iterator;
+    function __construct($Counter, $Iterator) {
+        $this->Counter = $Counter;
+        $this->Iterator = $Iterator;
+    }
+
+    function to_array() {
+        $arrayResults = array();
+        while($row = $this->Iterator->next()) {
+            $arrayResults[] = $row;
+        }
+        return $arrayResults;
+    }
+
+    function count() {
+        return $this->Counter->count();
+    }
+
+    function rewind() {
+        return $this->Iterator->rewind();
+    }
+
+    function valid() {
+        return $this->Iterator->valid();
+    }
+
+    function current() {
+        return $this->Iterator->current();
+    }
+
+    function key() {
+        return $this->Iterator->key();
+    }
+
+    function next() {
+        return $this->Iterator->next();
+    }
+}
+
+
 class Sequel_Iterator implements Iterator {
     private $Results,
             $isIterationStarted = false,
@@ -107,7 +150,6 @@ class Sequel_Iterator implements Iterator {
 }
 
 
-
 class Sequel_Counter {
     private $Connection,
             $predicate,
@@ -133,51 +175,6 @@ class Sequel_Counter {
             $this->count = $rows[0];
         }
         return $this->count;
-    }
-}
-
-
-
-//Results Set Wrapper returned by calls to select
-class Sequel_Results implements Iterator {
-    private $Counter, $Iterator;
-    function __construct($Counter, $Iterator) {
-        $this->Counter = $Counter;
-        $this->Iterator = $Iterator;
-    }
-
-    function to_array() {
-        $arrayResults = array();
-        while($row = $this->Iterator->next()) {
-            $arrayResults[] = $row;
-        }
-        return $arrayResults;
-    }
-
-    function count() {
-        return $this->Counter->count();
-    }
-
-    //Iterator Interface...
-
-    function rewind() {
-        return $this->Iterator->rewind();
-    }
-
-    function valid() {
-        return $this->Iterator->valid();
-    }
-
-    function current() {
-        return $this->Iterator->current();
-    }
-
-    function key() {
-        return $this->Iterator->key();
-    }
-
-    function next() {
-        return $this->Iterator->next();
     }
 }
 ?>

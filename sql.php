@@ -26,12 +26,14 @@ class Sequel {
         $isSuccess = $Statement->execute($values);
         $type = $this->query_type($query);
         if($type === "SELECT") {
-            return new Sequel_Results(array(
-                "results" => $Statement,
-                "query" => $query,
-                "values" => $values,
-                "connection" => $this->Connection
-            ));
+            return new Sequel_Results(
+                new Sequel_Counter(array(
+                    "query" => $query,
+                    "values" => $values,
+                    "connection" => $this->Connection
+                )),
+                new Sequel_Iterator($Statement)
+            );
         }
         else if($type === "INSERT") {
             return $this->Connection->lastInsertId();
@@ -63,50 +65,16 @@ class Sequel {
 
 
 
-//Results Set Wrapper returned by calls to select
-class Sequel_Results implements Iterator {
-    private $Connection,
-            $predicate,
-            $values,
-
-            $Results,
+class Sequel_Iterator implements Iterator {
+    private $Results,
             $isIterationStarted = false,
-            $count = null,
             $key = 0,
             $current;
 
-    function __construct(array $fig = array()) {
-        $this->Results = $fig['results'];
-        $this->predicate = substr(
-            $fig['query'],
-            strpos(strtoupper($fig['query']), "FROM")
-        );
-        $this->values = $fig['values'];
-        $this->Connection = $fig['connection'];
+    function __construct($Results) {
+        $this->Results = $Results;
         $this->Results->setFetchMode(PDO::FETCH_ASSOC);
     }
-
-    function to_array() {
-        $arrayResults = array();
-        while($row = $this->next()) {
-            $arrayResults[] = $row;
-        }
-        return $arrayResults;
-    }
-
-    //rowCount doesnt work for sqlite :(
-    function count() {
-        if($this->count === null) {
-            $sql= "SELECT count(*) " . $this->predicate;
-            $sth = $this->Connection->prepare($sql);
-            $sth->execute($this->values);
-            $rows = $sth->fetch(\PDO::FETCH_NUM);
-            $this->count = $rows[0];
-        }
-        return $this->count;
-    }
-
-    //Iterator Interface...
 
     function rewind() {
         if(!$this->isIterationStarted) {
@@ -135,6 +103,81 @@ class Sequel_Results implements Iterator {
         $this->key += 1;
         $this->current = $this->Results->fetch();
         return $this->current;
+    }
+}
+
+
+
+class Sequel_Counter {
+    private $Connection,
+            $predicate,
+            $values,
+            $count = null;
+
+    function __construct(array $fig = array()) {
+        $this->Connection = $fig['connection'];
+        $this->predicate = substr(
+            $fig['query'],
+            strpos(strtoupper($fig['query']), "FROM")
+        );
+        $this->values = $fig['values'];
+    }
+
+    //rowCount doesnt work for sqlite :(
+    function count() {
+        if($this->count === null) {
+            $sql= "SELECT count(*) " . $this->predicate;
+            $sth = $this->Connection->prepare($sql);
+            $sth->execute($this->values);
+            $rows = $sth->fetch(\PDO::FETCH_NUM);
+            $this->count = $rows[0];
+        }
+        return $this->count;
+    }
+}
+
+
+
+//Results Set Wrapper returned by calls to select
+class Sequel_Results implements Iterator {
+    private $Counter, $Iterator;
+    function __construct($Counter, $Iterator) {
+        $this->Counter = $Counter;
+        $this->Iterator = $Iterator;
+    }
+
+    function to_array() {
+        $arrayResults = array();
+        while($row = $this->Iterator->next()) {
+            $arrayResults[] = $row;
+        }
+        return $arrayResults;
+    }
+
+    function count() {
+        return $this->Counter->count();
+    }
+
+    //Iterator Interface...
+
+    function rewind() {
+        return $this->Iterator->rewind();
+    }
+
+    function valid() {
+        return $this->Iterator->valid();
+    }
+
+    function current() {
+        return $this->Iterator->current();
+    }
+
+    function key() {
+        return $this->Iterator->key();
+    }
+
+    function next() {
+        return $this->Iterator->next();
     }
 }
 ?>

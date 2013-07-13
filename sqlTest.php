@@ -166,6 +166,10 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
 
     //function test_transaction_query_is_held() {}
     //function test_transaction_commit() {}
+    /**
+     * @depends test_results_next
+     * @depends test_get_one
+     */
     function test_transaction_roll_back() {
         $this->Sql->begin_transaction();
         $this->Sql->query("INSERT INTO A (id) VALUES ('3')");

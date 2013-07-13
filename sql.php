@@ -10,6 +10,28 @@ class Sequel {
         $this->Connection = $Connection;
     }
 
+    function query($query, array $values = array()) {
+        $Statement = $this->Connection->prepare($query);
+        $isSuccess = $Statement->execute($values);
+        switch($this->query_type($query)) {
+            case "SELECT":
+                return new Sequel_Results(
+                    new Sequel_Counter(array(
+                        "connection" => $this->Connection,
+                        "values" => $values,
+                        "query" => $query
+                    )),
+                    new Sequel_Iterator($Statement)
+                );
+                break;
+            case "INSERT":
+                return $this->Connection->lastInsertId();
+                break;
+            default:
+                return $isSuccess;
+        }
+    }
+
     private function query_type($query) {
         $words = explode(" ", $query);
         if($words) {
@@ -20,26 +42,8 @@ class Sequel {
         }
     }
 
-    function query($query, array $values = array()) {
-        $Statement = $this->Connection->prepare($query);
-        $isSuccess = $Statement->execute($values);
-        $type = $this->query_type($query);
-        if($type === "SELECT") {
-            return new Sequel_Results(
-                new Sequel_Counter(array(
-                    "query" => $query,
-                    "values" => $values,
-                    "connection" => $this->Connection
-                )),
-                new Sequel_Iterator($Statement)
-            );
-        }
-        else if($type === "INSERT") {
-            return $this->Connection->lastInsertId();
-        }
-        else {
-            return $isSuccess;
-        }
+    function one($query, array $values = array()) {
+        return $this->query($query, $values)->next();
     }
 
     function get($table, array $whereEquals = array()) {
@@ -57,12 +61,6 @@ class Sequel {
         return $this->get($table, $whereEquals)->next();
     }
 
-    function one($query, array $values = array()) {
-        return $this->query($query, $values)->next();
-    }
-
-
-    //TODO TRANSACTIONS NEED UNIT TESTS
     function begin_transaction() {
         return $this->Connection->beginTransaction();
     }
@@ -74,7 +72,6 @@ class Sequel {
     function roll_back() {
         return $this->Connection->rollBack();
     }
-
 }
 
 
@@ -98,7 +95,10 @@ class Sequel_Results implements Iterator {
     }
 
     function count() { return $this->Counter->count(); }
+
+    //does not support rewind (here to make Iterator interface happy)
     function rewind() { return $this->Iterator->rewind(); }
+
     function valid() { return $this->Iterator->valid(); }
     function current() { return $this->Iterator->current(); }
     function key() { return $this->Iterator->key(); }
@@ -167,7 +167,7 @@ class Sequel_Counter {
     //rowCount doesnt work for sqlite :(
     function count() {
         if($this->count === null) {
-            $sql= "SELECT count(*) " . $this->predicate();//$this->predicate;
+            $sql= "SELECT count(*) " . $this->predicate();
             $sth = $this->Connection->prepare($sql);
             $sth->execute($this->values);
             $rows = $sth->fetch(\PDO::FETCH_NUM);

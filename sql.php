@@ -60,6 +60,21 @@ class Sequel {
     function one($query, array $values = array()) {
         return $this->query($query, $values)->next();
     }
+
+
+    //TODO TRANSACTIONS NEED UNIT TESTS
+    function begin_transaction() {
+        return $this->Connection->beginTransaction();
+    }
+
+    function commit() {
+        return $this->Connection->commit();
+    }
+
+    function roll_back() {
+        return $this->Connection->rollBack();
+    }
+
 }
 
 
@@ -82,29 +97,12 @@ class Sequel_Results implements Iterator {
         return $arrayResults;
     }
 
-    function count() {
-        return $this->Counter->count();
-    }
-
-    function rewind() {
-        return $this->Iterator->rewind();
-    }
-
-    function valid() {
-        return $this->Iterator->valid();
-    }
-
-    function current() {
-        return $this->Iterator->current();
-    }
-
-    function key() {
-        return $this->Iterator->key();
-    }
-
-    function next() {
-        return $this->Iterator->next();
-    }
+    function count() { return $this->Counter->count(); }
+    function rewind() { return $this->Iterator->rewind(); }
+    function valid() { return $this->Iterator->valid(); }
+    function current() { return $this->Iterator->current(); }
+    function key() { return $this->Iterator->key(); }
+    function next() { return $this->Iterator->next(); }
 }
 
 
@@ -130,7 +128,7 @@ class Sequel_Iterator implements Iterator {
     }
 
     function valid() {
-        return ($this->current !== false);
+        return $this->current !== false;
     }
 
     function current() {
@@ -152,23 +150,24 @@ class Sequel_Iterator implements Iterator {
 
 class Sequel_Counter {
     private $Connection,
-            $predicate,
             $values,
+            $query,
             $count = null;
 
     function __construct(array $fig = array()) {
         $this->Connection = $fig['connection'];
-        $this->predicate = substr(
-            $fig['query'],
-            strpos(strtoupper($fig['query']), "FROM")
-        );
         $this->values = $fig['values'];
+        $this->query = $fig['query'];
+    }
+
+    private function predicate() {
+        return substr($this->query, strpos(strtoupper($this->query), "FROM"));
     }
 
     //rowCount doesnt work for sqlite :(
     function count() {
         if($this->count === null) {
-            $sql= "SELECT count(*) " . $this->predicate;
+            $sql= "SELECT count(*) " . $this->predicate();//$this->predicate;
             $sth = $this->Connection->prepare($sql);
             $sth->execute($this->values);
             $rows = $sth->fetch(\PDO::FETCH_NUM);

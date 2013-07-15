@@ -13,7 +13,7 @@ class Sequel {
     function query($query, array $values = array()) {
         $Statement = $this->Connection->prepare($query);
         $isSuccess = $Statement->execute($values);
-        switch($this->query_type($query)) {
+        switch($this->queryType($query)) {
             case "SELECT":
                 return new Sequel_Results(
                     new Sequel_Counter(array(
@@ -32,7 +32,7 @@ class Sequel {
         }
     }
 
-    private function query_type($query) {
+    private function queryType($query) {
         $words = explode(" ", $query);
         if($words) {
             return strtoupper($words[0]);
@@ -46,22 +46,63 @@ class Sequel {
         return $this->query($query, $values)->next();
     }
 
-    function get($table, array $whereEquals = array()) {
+    //TODO rename "select"
+    function select($table, array $where = array()) {
         $whereArray = array();
-        foreach($whereEquals as $key => $value) {
+        foreach($where as $key => $value) {
             $whereArray[] = "$key = ?";
         }
         return $this->query(
-            "SELECT * FROM $table WHERE " . implode(" AND ", $whereArray),
-            array_values($whereEquals)
+            "SELECT * FROM $table WHERE " . $this->whereSql(array_keys($where)),
+            array_values($where)
         );
     }
 
-    function get_one($table, array $whereEquals = array()) {
-        return $this->get($table, $whereEquals)->next();
+    private function whereSql(array $columns) {
+        $whereArray = array();
+        foreach($columns as $column) {
+            $whereArray[] = "$column = ?";
+        }
+        return implode(" AND ", $whereArray);
     }
 
-    function begin_transaction() {
+    //TODO rename "selectOne"
+    function selectOne($table, array $where = array()) {
+        return $this->select($table, $where)->next();
+    }
+
+    function insert($table, array $values = array()) {
+        return $this->query(
+            "INSERT INTO $table (" . implode(", ", array_keys($values)) . ") " .
+            "VALUES (" . $this->questionMarks(count($values)) . ")",
+            array_values($values)
+        );
+    }
+
+    function update($table, array $values = array(), array $where = array()) {
+        $setArray = array();
+        foreach(array_keys($values) as $key) {
+            $setArray[] = "$key = ?";
+        }
+        return $this->query(
+            "UPDATE $table SET " . implode(", ", $setArray) .
+            " WHERE " . $this->whereSql(array_keys($where)),
+            array_merge(array_values($values), array_values($where))
+        );
+    }
+
+    function delete($table, array $where = array()) {
+        return $this->query(
+            "DELETE FROM $table WHERE " . $this->whereSql(array_keys($where)),
+            array_values($where)
+        );
+    }
+
+    private function questionMarks($number) {
+        return implode(", ", array_fill(0, $number, "?"));
+    }
+
+    function beginTransaction() {
         return $this->Connection->beginTransaction();
     }
 
@@ -69,13 +110,10 @@ class Sequel {
         return $this->Connection->commit();
     }
 
-    function roll_back() {
+    function rollBack() {
         return $this->Connection->rollBack();
     }
 }
-
-
-
 
 
 //Results Set Wrapper returned by calls to select
@@ -86,7 +124,7 @@ class Sequel_Results implements Iterator {
         $this->Iterator = $Iterator;
     }
 
-    function to_array() {
+    function toArray() {
         $arrayResults = array();
         while($row = $this->Iterator->next()) {
             $arrayResults[] = $row;
@@ -95,10 +133,8 @@ class Sequel_Results implements Iterator {
     }
 
     function count() { return $this->Counter->count(); }
-
     //does not support rewind (here to make Iterator interface happy)
     function rewind() { return $this->Iterator->rewind(); }
-
     function valid() { return $this->Iterator->valid(); }
     function current() { return $this->Iterator->current(); }
     function key() { return $this->Iterator->key(); }
@@ -160,20 +196,21 @@ class Sequel_Counter {
         $this->query = $fig['query'];
     }
 
-    private function predicate() {
-        return substr($this->query, strpos(strtoupper($this->query), "FROM"));
-    }
-
     //rowCount doesnt work for sqlite :(
     function count() {
         if($this->count === null) {
-            $sql= "SELECT count(*) " . $this->predicate();
-            $sth = $this->Connection->prepare($sql);
-            $sth->execute($this->values);
-            $rows = $sth->fetch(\PDO::FETCH_NUM);
+            $statement = $this->Connection->prepare(
+                "SELECT count(*) " . $this->predicate()
+            );
+            $statement->execute($this->values);
+            $rows = $statement->fetch(\PDO::FETCH_NUM);
             $this->count = $rows[0];
         }
         return $this->count;
+    }
+
+    private function predicate() {
+        return substr($this->query, strpos(strtoupper($this->query), "FROM"));
     }
 }
 ?>

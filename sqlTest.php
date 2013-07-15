@@ -85,6 +85,16 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
         }
     }
 
+    /**
+     * @expectedException Sequel_Exception
+     * @expectedExceptionMessage Does not support rewind.
+     */
+    function test_rewind_throws_exception_after_next_called() {
+        $results = $this->Sql->query("SELECT * FROM A");
+        $results->next();
+        $results->rewind();
+    }
+
     function test_one() {
         $this->assertEquals(
             $this->Sql->one("SELECT * FROM A WHERE a = 'foo'"),
@@ -99,21 +109,55 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
         );
     }
 
-    function test_get() {
+    function test_select() {
         $this->assertEquals(
-            $this->Sql->get("A", array("a" => "foo"))->to_array(),
+            $this->Sql->select("A", array("a" => "foo"))->toArray(),
             array(array("id" => 1, "a" => "foo", "b" => 5))
         );
     }
 
-    function test_get_one() {
+    function test_selectOne() {
         $this->assertEquals(
-            $this->Sql->get_one("A", array("a" => "foo")),
+            $this->Sql->selectOne("A", array("a" => "foo")),
             array("id" => 1, "a" => "foo", "b" => 5)
         );
     }
 
+    /**
+     * @depends test_selectOne
+     */
     function test_insert() {
+        $this->Sql->insert("A", array("id" => 3, "a" => "foo"));
+        $this->assertEquals(
+            $this->Sql->selectOne("A", array("id" => 3)),
+            array("id" => 3, "a" => "foo", "b" => null)
+        );
+    }
+
+    /**
+     * @depends test_selectOne
+     */
+    function test_update() {
+        $this->Sql->update(
+            "A",
+            array("a" => "editA", "b" => 7),
+            array("id" => 2, "a" => "bar")
+        );
+        $this->assertEquals(
+            array("id" => 2, "a" => "editA", "b" => 7),
+            $this->Sql->selectOne("A", array("id" => 2))
+        );
+    }
+
+    /**
+     * @depends test_selectOne
+     */
+    function test_delete() {
+        $this->Sql->delete("A", array("id" => 2));
+        $this->assertFalse($this->Sql->selectOne("A", array("id" => 2)));
+    }
+
+    function test_query_insert() {
         $this->Sql->query(
             "INSERT INTO A (id, a, b) VALUES (? ,?, ?)",
             array(3, "baz", 7)
@@ -126,7 +170,7 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
         );
     }
 
-    function test_insert_id() {
+    function test_query_insert_id() {
         $id = $this->Sql->query(
             "INSERT INTO A (id, a, b) VALUES (? ,?, ?)",
             array(3, "baz", 7)
@@ -134,7 +178,7 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
         $this->assertEquals(3, $id);
     }
 
-    function test_update() {
+    function test_query_update() {
         $this->Sql->query("UPDATE A SET a = 'edit' WHERE id='1'");
         $Results = $this->DB->query("SELECT * FROM A WHERE id='1'");
         $Results->setFetchMode(PDO::FETCH_ASSOC);
@@ -144,7 +188,7 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
         );
     }
 
-    function test_delete() {
+    function test_query_delete() {
         $this->Sql->query("DELETE FROM A WHERE id='1'");
         $Results = $this->DB->query("SELECT * FROM A WHERE id='1'");
         $this->assertEquals(
@@ -153,28 +197,26 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
         );
     }
 
-    function test_results_to_array() {
+    function test_results_toArray() {
         $ResultsObject = $this->Sql->query("SELECT * FROM A");
         $this->assertEquals(
             array(
                 array("id" => 1, "a" => "foo", "b" => 5),
                 array("id" => 2,"a" => "bar", "b" => 6)
             ),
-            $ResultsObject->to_array()
+            $ResultsObject->toArray()
         );
     }
 
-    //function test_transaction_query_is_held() {}
-    //function test_transaction_commit() {}
     /**
      * @depends test_results_next
-     * @depends test_get_one
+     * @depends test_selectOne
      */
-    function test_transaction_roll_back() {
-        $this->Sql->begin_transaction();
+    function test_transaction_rollBack() {
+        $this->Sql->beginTransaction();
         $this->Sql->query("INSERT INTO A (id) VALUES ('3')");
-        $this->Sql->roll_back();
-        $this->assertFalse($this->Sql->get_one("A", array("id" => 3)));
+        $this->Sql->rollBack();
+        $this->assertFalse($this->Sql->selectOne("A", array("id" => 3)));
     }
 }
 ?>

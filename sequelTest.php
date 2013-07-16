@@ -1,5 +1,5 @@
 <?php
-require_once "sql.php";
+require_once "sequel.php";
 
 class Sql_Test extends PHPUnit_Framework_TestCase {
 

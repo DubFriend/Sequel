@@ -47,7 +47,7 @@ class Sequel {
     }
 
     //TODO rename "select"
-    function select($table, array $where = array()) {
+    function select($table, array $where) {
         $whereArray = array();
         foreach($where as $key => $value) {
             $whereArray[] = "$key = ?";
@@ -67,11 +67,11 @@ class Sequel {
     }
 
     //TODO rename "selectOne"
-    function selectOne($table, array $where = array()) {
+    function selectOne($table, array $where) {
         return $this->select($table, $where)->next();
     }
 
-    function insert($table, array $values = array()) {
+    function insert($table, array $values) {
         return $this->query(
             "INSERT INTO $table (" . implode(", ", array_keys($values)) . ") " .
             "VALUES (" . $this->questionMarks(count($values)) . ")",
@@ -79,7 +79,7 @@ class Sequel {
         );
     }
 
-    function update($table, array $values = array(), array $where = array()) {
+    function update($table, array $values, array $where) {
         $setArray = array();
         foreach(array_keys($values) as $key) {
             $setArray[] = "$key = ?";
@@ -91,7 +91,7 @@ class Sequel {
         );
     }
 
-    function delete($table, array $where = array()) {
+    function delete($table, array $where) {
         return $this->query(
             "DELETE FROM $table WHERE " . $this->whereSql(array_keys($where)),
             array_values($where)

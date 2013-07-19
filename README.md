@@ -11,7 +11,9 @@ foreach($Sql->query("SELECT * FROM A") as $row) {
 $Sql = new Sequel(new PDO("your connection settings..."));
 ```
 
+
 ## Sequel Methods
+
 
 ### query
 ```php
@@ -70,26 +72,35 @@ $isSuccess = $Sql->delete("table", array("id" => 5));
 ```
 
 ### beginTransaction
-wraps PDO's beginTransaction
+calls PDO's beginTransaction
 ```php
 $Sql->beginTransaction();
 ```
 
 ### commit
-wraps PDO's commit
+calls PDO's commit
 ```php
 $Sql->commit();
 ```
 
 ### rollBack
-wraps PDO's rollBack
+calls PDO's rollBack
 ```php
 $Sql->rollBack();
 ```
 
+
 ## Sequel_Results Methods
 
+
 Sequel_Results objects are returned by Sequel's select methods.
+```php
+$Results = $Sql->query("SELECT ...", array(...));
+```
+and
+```php
+$Results = $Sql->select(...);
+```
 
 ### toArray
 returns all results as a PHP array
@@ -116,4 +127,8 @@ returns the current element.
 returns the cursor's index position.
 
 ### next
-advances the cursor position.  Returns false when at the end of the list of elements.
+Advances cursor position and returns the next row. Returns false when at the end of the list.
+```php
+$row = $Results->next();
+```
+

@@ -38,7 +38,7 @@ returns insert id.
 ### one
 Returns the first row of a results set from a select statement. (associative array)
 ```php
-//equivalent of $Sql->query("SELECT ...", values);
+//equivalent of $Sql->query("SELECT ...", values)->next();
 $row = $Sql->one("SELECT ...", values);
 ```
 
@@ -99,7 +99,6 @@ Sequel_Results objects are returned by Sequel's select methods.
 ```php
 $Results = $Sql->query("SELECT ...", array(...));
 ```
-and
 ```php
 $Results = $Sql->select(...);
 ```

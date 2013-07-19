@@ -21,11 +21,14 @@ The query method takes a sql statement and array of corresponding values, and re
 
 - **SELECT**
 returns a Sequel_Results object.
+
 ```php
 //returns rows with an id of 5
 $results = $Sql->query("SELECT * FROM table WHERE id = ?", array(5));
 ```
+
 - **UPDATE, DELETE**
+
 returns true if the operation was successful, else returns false.
 - **INSERT**
 returns insert id.

@@ -1,5 +1,5 @@
 # Sequel
-Sequel is a lightweight PDO wrapper that simplifies the PDO interface and enables "foreach" iteration.
+Sequel is a lightweight PDO wrapper that simplifies the PDO interface and enables foreach iteration.
 
 ```php
 foreach($Sql->query("SELECT * FROM A") as $row) {
@@ -25,8 +25,8 @@ The query method takes a sql statement and array of corresponding values, and re
 returns a Sequel_Results object.
 
 ```php
-//returns rows with an id of 5
-$results = $Sql->query("SELECT * FROM table WHERE id = ?", array(5));
+//returns Sequel_Results object of rows with an id of 5
+$Results = $Sql->query("SELECT * FROM table WHERE id = ?", array(5));
 ```
 
 - **UPDATE, DELETE**
@@ -36,22 +36,24 @@ returns true if the operation was successful, else returns false.
 returns insert id.
 
 ### one
+Returns the first row of a results set from a select statement. (associative array)
 ```php
-$Sql->one("SELECT ... ", values);
+//equivalent of $Sql->query("SELECT ...", values);
+$row = $Sql->one("SELECT ...", values);
 ```
-returns the first row of a results set from a select statement
 
 ### select
 ```php
 //equivalent of $Sql->query("SELECT * FROM table WHERE id = ?", array(5))
-$Sql->select("table", array("id" => 5));
+$Results = $Sql->select("table", array("id" => 5));
 ```
 
 ### selectOne
+Returns the first result of the select method.
 ```php
-$Sql->selectOne("table", array("id" => 5));
+//equivalent of $Sql->select("table", array("id" => 5))->next();
+$row = $Sql->selectOne("table", array("id" => 5));
 ```
-returns first result of select query.
 
 ### insert
 ```php
@@ -105,13 +107,13 @@ $Results = $Sql->select(...);
 ### toArray
 returns all results as a PHP array
 ```php
-$Results->toArray();
+$arrayOfRows = $Results->toArray();
 ```
 
 ### count
 returns number of results
 ```php
-$Results->count();
+$numberOfRows = $Results->count();
 ```
 
 ### rewind

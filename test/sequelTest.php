@@ -1,36 +1,8 @@
 <?php
 require_once "sequel.php";
+require_once "sequelBase.php";
 
-class Sql_Test extends PHPUnit_Framework_TestCase {
-
-    private $Sql, $DB;
-
-    function setUp() {
-        $this->DB = new PDO("sqlite::memory:");
-        $this->Sql = new Sequel($this->DB);
-        $this->create_database();
-        $this->insert_default_rows();
-    }
-
-    private function create_database() {
-        $this->DB->exec(
-            "CREATE TABLE IF NOT EXISTS A (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                a CHAR(3),
-                b INT
-            )"
-        );
-    }
-
-    private function insert_default_rows() {
-        $this->DB->prepare(
-            "INSERT INTO A (id, a, b) VALUES (?, ?, ?)"
-        )->execute(array(1, "foo", 5));
-        $this->DB->prepare(
-            "INSERT INTO A (id, a, b) VALUES (?, ?, ?)"
-        )->execute(array(2, "bar", 6));
-    }
-
+class Sql_Test extends Sql_Test_Base {
 
     function test_results_count() {
         $Results = $this->Sql->query("sElecT * FROM A");
@@ -102,17 +74,24 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
         );
     }
 
-    function test_one_no_result() {
-        $this->assertEquals(
-            $this->Sql->one("SELECT * FROM A WHERE a = 'wrong'"),
-            false
-        );
+    function test_one_no_results() {
+        $this->assertFalse($this->Sql->one("SELECT * FROM A WHERE a = 'wrong'"));
     }
 
     function test_select() {
         $this->assertEquals(
             $this->Sql->select("A", array("a" => "foo"))->toArray(),
             array(array("id" => 1, "a" => "foo", "b" => 5))
+        );
+    }
+
+    function test_select_no_where() {
+        $this->assertEquals(
+            $this->Sql->select('A')->toArray(),
+            array(
+                array("id" => 1, "a" => "foo", "b" => 5),
+                array("id" => 2,"a" => "bar", "b" => 6)
+            )
         );
     }
 
@@ -123,29 +102,49 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
         );
     }
 
+    function test_selectOne_no_results() {
+        $this->assertFalse($this->Sql->selectOne("A", array("a" => "wrong")));
+    }
+
     /**
      * @depends test_selectOne
      */
     function test_insert() {
-        $this->Sql->insert("A", array("id" => 3, "a" => "foo"));
+        $this->Sql->insert("A", array("id" => 3, "a" => "baz"));
         $this->assertEquals(
             $this->Sql->selectOne("A", array("id" => 3)),
-            array("id" => 3, "a" => "foo", "b" => null)
+            array("id" => 3, "a" => "baz", "b" => null)
         );
     }
 
     /**
      * @depends test_selectOne
      */
+    function test_insert_fail_unique_key_constraint() {
+        $this->assertFalse(
+            $this->Sql->insert("A", array("id" => 3, "a" => "foo"))
+        );
+        $this->assertFalse($this->Sql->selectOne("A", array("id" => 3)));
+    }
+
+    /**
+     * @depends test_selectOne
+     */
     function test_update() {
-        $this->Sql->update(
+        $this->assertTrue($this->Sql->update(
             "A",
             array("a" => "editA", "b" => 7),
             array("id" => 2, "a" => "bar")
-        );
+        ));
         $this->assertEquals(
             array("id" => 2, "a" => "editA", "b" => 7),
             $this->Sql->selectOne("A", array("id" => 2))
+        );
+    }
+
+    function test_update_fail() {
+        $this->assertFalse(
+            $this->Sql->update("A", array("a" => "bar"), array("id" => 1))
         );
     }
 
@@ -153,7 +152,7 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
      * @depends test_selectOne
      */
     function test_delete() {
-        $this->Sql->delete("A", array("id" => 2));
+        $this->assertTrue($this->Sql->delete("A", array("id" => 2)));
         $this->assertFalse($this->Sql->selectOne("A", array("id" => 2)));
     }
 
@@ -218,5 +217,10 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
         $this->Sql->rollBack();
         $this->assertFalse($this->Sql->selectOne("A", array("id" => 3)));
     }
+
 }
+
+
+
+
 ?>

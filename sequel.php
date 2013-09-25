@@ -3,11 +3,66 @@
 //(currently implented with PDO)
 class Sequel_Exception extends Exception {}
 
+
+class Sequel_Table {
+    private $table, $Sql;
+    function __construct($table, $Sql) {
+        $this->table = $table;
+        $this->Sql = $Sql;
+    }
+
+    function query($query, array $values = array()) {
+        switch($this->Sql->queryType($query)) {
+            case "SELECT":
+                return $this->Sql->query($this->adaptSelect($query), $values);
+                break;
+            case "INSERT":
+                return $this->Sql->query($this->adaptInsert($query), $values);
+                break;
+            case "UPDATE":
+                return $this->Sql->query($this->adaptUpdate($query), $values);
+                break;
+            case "DELETE":
+                return $this->Sql->query($this->adaptDelete($query), $values);
+                break;
+            default:
+        }
+    }
+
+    private function adaptSelect($query) {
+        $parts = $this->splitOnWhere($query);
+        return $parts['start'] . " FROM " . $this->table . $parts['end'];
+    }
+
+    private function splitOnWhere($query) {
+        $parts = preg_split("/ WHERE /i", $query);
+        return array(
+            "start" => $parts[0],
+            "end" => " WHERE " . $parts[1]
+        );
+    }
+
+    private function adaptInsert($query) {
+        return "INSERT INTO " . $this->table . substr($query, 6);
+    }
+    private function adaptUpdate($query) {
+        return "UPDATE " . $this->table . substr($query, 6);
+    }
+
+    private function adaptDelete($query) {
+        return "DELETE FROM " . $this->table . substr($query, 6);
+    }
+}
+
 class Sequel {
     private $Connection;
 
     function __construct($Connection) {
         $this->Connection = $Connection;
+    }
+
+    function table($table) {
+        return new Sequel_Table($table, $this);
     }
 
     function query($query, array $values = array()) {
@@ -25,14 +80,19 @@ class Sequel {
                 );
                 break;
             case "INSERT":
-                return $this->Connection->lastInsertId();
+                if($isSuccess) {
+                    return $this->Connection->lastInsertId();
+                }
+                else {
+                    return false;
+                }
                 break;
             default:
                 return $isSuccess;
         }
     }
 
-    private function queryType($query) {
+    public function queryType($query) {
         $words = explode(" ", $query);
         if($words) {
             return strtoupper($words[0]);
@@ -46,16 +106,12 @@ class Sequel {
         return $this->query($query, $values)->next();
     }
 
-    //TODO rename "select"
-    function select($table, array $where) {
-        $whereArray = array();
-        foreach($where as $key => $value) {
-            $whereArray[] = "$key = ?";
+    function select($table, array $where = array()) {
+        $query = "SELECT * FROM $table";
+        if(!empty($where)) {
+            $query .= " WHERE " . $this->whereSql(array_keys($where));
         }
-        return $this->query(
-            "SELECT * FROM $table WHERE " . $this->whereSql(array_keys($where)),
-            array_values($where)
-        );
+        return $this->query($query, array_values($where));
     }
 
     private function whereSql(array $columns) {
@@ -66,12 +122,11 @@ class Sequel {
         return implode(" AND ", $whereArray);
     }
 
-    //TODO rename "selectOne"
-    function selectOne($table, array $where) {
+    function selectOne($table, array $where = array()) {
         return $this->select($table, $where)->next();
     }
 
-    function insert($table, array $values) {
+    function insert($table, array $values = array()) {
         return $this->query(
             "INSERT INTO $table (" . implode(", ", array_keys($values)) . ") " .
             "VALUES (" . $this->questionMarks(count($values)) . ")",
@@ -79,7 +134,7 @@ class Sequel {
         );
     }
 
-    function update($table, array $values, array $where) {
+    function update($table, array $values = array(), array $where = array()) {
         $setArray = array();
         foreach(array_keys($values) as $key) {
             $setArray[] = "$key = ?";
@@ -91,7 +146,7 @@ class Sequel {
         );
     }
 
-    function delete($table, array $where) {
+    function delete($table, array $where = array()) {
         return $this->query(
             "DELETE FROM $table WHERE " . $this->whereSql(array_keys($where)),
             array_values($where)
@@ -132,7 +187,10 @@ class Sequel_Results implements Iterator {
         return $arrayResults;
     }
 
-    function count() { return $this->Counter->count(); }
+    function count() {
+        return $this->Counter->count();
+    }
+
     //does not support rewind (here to make Iterator interface happy)
     function rewind() { return $this->Iterator->rewind(); }
     function valid() { return $this->Iterator->valid(); }
@@ -209,8 +267,9 @@ class Sequel_Counter {
         return $this->count;
     }
 
+    //returns everything after the "FROM" in a select statement.
     private function predicate() {
-        return substr($this->query, strpos(strtoupper($this->query), "FROM"));
+        return substr($this->query, strpos(strtoupper($this->query), " FROM "));
     }
 }
 ?>

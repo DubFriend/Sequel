@@ -1,58 +1,7 @@
 <?php
 //Wrapper to abstract the method of database access
-//(currently implented with PDO)
+//(implented with PDO)
 class Sequel_Exception extends Exception {}
-
-
-class Sequel_Table {
-    private $table, $Sql;
-    function __construct($table, $Sql) {
-        $this->table = $table;
-        $this->Sql = $Sql;
-    }
-
-    function query($query, array $values = array()) {
-        switch($this->Sql->queryType($query)) {
-            case "SELECT":
-                return $this->Sql->query($this->adaptSelect($query), $values);
-                break;
-            case "INSERT":
-                return $this->Sql->query($this->adaptInsert($query), $values);
-                break;
-            case "UPDATE":
-                return $this->Sql->query($this->adaptUpdate($query), $values);
-                break;
-            case "DELETE":
-                return $this->Sql->query($this->adaptDelete($query), $values);
-                break;
-            default:
-        }
-    }
-
-    private function adaptSelect($query) {
-        $parts = $this->splitOnWhere($query);
-        return $parts['start'] . " FROM " . $this->table . $parts['end'];
-    }
-
-    private function splitOnWhere($query) {
-        $parts = preg_split("/ WHERE /i", $query);
-        return array(
-            "start" => $parts[0],
-            "end" => " WHERE " . $parts[1]
-        );
-    }
-
-    private function adaptInsert($query) {
-        return "INSERT INTO " . $this->table . substr($query, 6);
-    }
-    private function adaptUpdate($query) {
-        return "UPDATE " . $this->table . substr($query, 6);
-    }
-
-    private function adaptDelete($query) {
-        return "DELETE FROM " . $this->table . substr($query, 6);
-    }
-}
 
 class Sequel {
     private $Connection;

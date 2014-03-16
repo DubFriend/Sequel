@@ -2,7 +2,34 @@
 require_once "sequel.php";
 require_once "sequelBase.php";
 
-class Sql_Test extends Sql_Test_Base {
+class Sql_Test extends PHPUnit_Framework_TestCase {
+    public $Sql, $DB;
+
+    function setUp() {
+        $this->DB = new PDO("sqlite::memory:");
+        $this->Sql = new Sequel($this->DB);
+        $this->create_database();
+        $this->insert_default_rows();
+    }
+
+    function create_database() {
+        $this->DB->exec(
+            "CREATE TABLE IF NOT EXISTS A (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                a CHAR(3) UNIQUE,
+                b INT
+            )"
+        );
+    }
+
+    function insert_default_rows() {
+        $this->DB->prepare(
+            "INSERT INTO A (id, a, b) VALUES (?, ?, ?)"
+        )->execute(array(1, "foo", 5));
+        $this->DB->prepare(
+            "INSERT INTO A (id, a, b) VALUES (?, ?, ?)"
+        )->execute(array(2, "bar", 6));
+    }
 
     function test_results_count() {
         $Results = $this->Sql->query("sElecT * FROM A");
@@ -219,8 +246,4 @@ class Sql_Test extends Sql_Test_Base {
     }
 
 }
-
-
-
-
 ?>

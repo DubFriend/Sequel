@@ -17,7 +17,8 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
             "CREATE TABLE IF NOT EXISTS A (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 a CHAR(3) UNIQUE,
-                b INT
+                b INT,
+                `select` INT
             )"
         );
     }
@@ -27,8 +28,8 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
             "INSERT INTO A (id, a, b) VALUES (?, ?, ?)"
         )->execute(array(1, "foo", 5));
         $this->DB->prepare(
-            "INSERT INTO A (id, a, b) VALUES (?, ?, ?)"
-        )->execute(array(2, "bar", 6));
+            "INSERT INTO A (id, a, b, `select`) VALUES (?, ?, ?, ?)"
+        )->execute(array(2, "bar", 6, 1));
     }
 
     function test_results_count() {
@@ -49,7 +50,7 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
     function test_results_next() {
         $Results = $this->Sql->query("SELECT * FROM A");
         $this->assertEquals(
-            array("id" => 1,"a" => "foo", "b" => 5),
+            array("id" => 1,"a" => "foo", "b" => 5, "select" => null),
             $Results->next()
         );
     }
@@ -62,8 +63,8 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
 
         $this->assertEquals(
             array(
-                array("id" => 1, "a" => "foo", "b" => 5),
-                array("id" => 2,"a" => "bar", "b" => 6)
+                array("id" => 1, "a" => "foo", "b" => 5, "select" => null),
+                array("id" => 2,"a" => "bar", "b" => 6, "select" => 1)
             ),
             $actualResults
         );
@@ -107,7 +108,7 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
     function test_one() {
         $this->assertEquals(
             $this->Sql->one("SELECT * FROM A WHERE a = 'foo'"),
-            array("id" => 1, "a" => "foo", "b" => 5)
+            array("id" => 1, "a" => "foo", "b" => 5, "select" => null)
         );
     }
 
@@ -118,7 +119,7 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
     function test_select() {
         $this->assertEquals(
             $this->Sql->select("A", array("a" => "foo"))->toArray(),
-            array(array("id" => 1, "a" => "foo", "b" => 5))
+            array(array("id" => 1, "a" => "foo", "b" => 5, "select" => null))
         );
     }
 
@@ -126,8 +127,8 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
         $this->assertEquals(
             $this->Sql->select('A')->toArray(),
             array(
-                array("id" => 1, "a" => "foo", "b" => 5),
-                array("id" => 2,"a" => "bar", "b" => 6)
+                array("id" => 1, "a" => "foo", "b" => 5, "select" => null),
+                array("id" => 2,"a" => "bar", "b" => 6, "select" => 1)
             )
         );
     }
@@ -135,7 +136,7 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
     function test_selectOne() {
         $this->assertEquals(
             $this->Sql->selectOne("A", array("a" => "foo")),
-            array("id" => 1, "a" => "foo", "b" => 5)
+            array("id" => 1, "a" => "foo", "b" => 5, "select" => null)
         );
     }
 
@@ -150,7 +151,7 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
         $this->Sql->insert("A", array("id" => 3, "a" => "baz"));
         $this->assertEquals(
             $this->Sql->selectOne("A", array("id" => 3)),
-            array("id" => 3, "a" => "baz", "b" => null)
+            array("id" => 3, "a" => "baz", "b" => null, "select" => null)
         );
     }
 
@@ -174,7 +175,7 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
             array("id" => 2, "a" => "bar")
         ));
         $this->assertEquals(
-            array("id" => 2, "a" => "editA", "b" => 7),
+            array("id" => 2, "a" => "editA", "b" => 7, "select" => 1),
             $this->Sql->selectOne("A", array("id" => 2))
         );
     }
@@ -201,7 +202,7 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
         $Results = $this->DB->query("SELECT * FROM A WHERE id='3'");
         $Results->setFetchMode(PDO::FETCH_ASSOC);
         $this->assertEquals(
-            array("id" => 3, "a" => "baz", "b" => 7),
+            array("id" => 3, "a" => "baz", "b" => 7, "select" => null),
             $Results->fetch()
         );
     }
@@ -219,7 +220,7 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
         $Results = $this->DB->query("SELECT * FROM A WHERE id='1'");
         $Results->setFetchMode(PDO::FETCH_ASSOC);
         $this->assertEquals(
-            array("id" => 1, "a" => "edit", "b" => 5),
+            array("id" => 1, "a" => "edit", "b" => 5, "select" => null),
             $Results->fetch()
         );
     }
@@ -237,8 +238,8 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
         $ResultsObject = $this->Sql->query("SELECT * FROM A");
         $this->assertEquals(
             array(
-                array("id" => 1, "a" => "foo", "b" => 5),
-                array("id" => 2,"a" => "bar", "b" => 6)
+                array("id" => 1, "a" => "foo", "b" => 5, "select" => null),
+                array("id" => 2,"a" => "bar", "b" => 6, "select" => 1)
             ),
             $ResultsObject->toArray()
         );

@@ -1,0 +1,26 @@
+{
+  "name": "Sequel",
+  "version": "0.0.0",
+  "description": "Sequel is a lightweight PDO wrapper that simplifies the PDO interface and enables foreach iteration.",
+  "main": "gruntfile.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DubFriend/Sequel.git"
+  },
+  "author": "Brian Detering <BDeterin@gmail.com> (http://www.briandetering.net/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DubFriend/Sequel/issues"
+  },
+  "devDependencies": {
+    "grunt": "~0.4.4",
+    "grunt-phpunit": "~0.3.3",
+    "grunt-contrib-watch": "~0.6.0"
+  }
+}

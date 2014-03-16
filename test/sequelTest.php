@@ -1,6 +1,6 @@
 <?php
 require_once "sequel.php";
-require_once "sequelBase.php";
+// require_once "sequelBase.php";
 
 class Sql_Test extends PHPUnit_Framework_TestCase {
     public $Sql, $DB;
@@ -33,6 +33,16 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
 
     function test_results_count() {
         $Results = $this->Sql->query("sElecT * FROM A");
+        $this->assertEquals(2, $Results->count());
+    }
+
+    function test_results_count_limit() {
+        $Results = $this->Sql->query("SELECT * FROM A LIMIT 1, 1");
+        $this->assertEquals(2, $Results->count());
+    }
+
+    function test_results_count_limit_case_insensitive() {
+        $Results = $this->Sql->query("SELECT * FRoM A LImIT 1, 1");
         $this->assertEquals(2, $Results->count());
     }
 

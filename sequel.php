@@ -207,7 +207,7 @@ class Sequel_Counter {
     function count() {
         if($this->count === null) {
             $statement = $this->Connection->prepare(
-                "SELECT count(*) " . $this->predicate()
+                "SELECT COUNT(*) " . $this->predicate()
             );
             $statement->execute($this->values);
             $rows = $statement->fetch(\PDO::FETCH_NUM);
@@ -216,9 +216,11 @@ class Sequel_Counter {
         return $this->count;
     }
 
-    //returns everything after the "FROM" in a select statement.
+    // removes the "SELECT" and "LIMIT" portions of the query.
     private function predicate() {
-        return substr($this->query, strpos(strtoupper($this->query), " FROM "));
+        $predicate = preg_replace('/.* FROM /i', '', $this->query);
+        $predicate = preg_replace('/ LIMIT .*/i', '', $predicate);
+        return  ' FROM ' . $predicate;
     }
 }
 ?>

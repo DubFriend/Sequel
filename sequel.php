@@ -55,7 +55,25 @@ class Sequel {
         return $this->query($query, $values)->next();
     }
 
+    private function wrapKeysBackTicks(array $values) {
+        $wrapped = array();
+        foreach($values as $key => $value) {
+            if($this->doesHaveBackTicks($key)) {
+                $wrapped[$key] = $value;
+            }
+            else {
+                $wrapped['`' . $key . '`'] = $value;
+            }
+        }
+        return $wrapped;
+    }
+
+    private function doesHaveBackTicks($value) {
+        return preg_match('/^`.*`$/', $value);
+    }
+
     function select($table, array $where = array()) {
+        $where = $this->wrapKeysBackTicks($where);
         $query = "SELECT * FROM $table";
         if(!empty($where)) {
             $query .= " WHERE " . $this->whereSql(array_keys($where));
@@ -76,6 +94,7 @@ class Sequel {
     }
 
     function insert($table, array $values = array()) {
+        $values = $this->wrapKeysBackTicks($values);
         return $this->query(
             "INSERT INTO $table (" . implode(", ", array_keys($values)) . ") " .
             "VALUES (" . $this->questionMarks(count($values)) . ")",
@@ -84,6 +103,8 @@ class Sequel {
     }
 
     function update($table, array $values = array(), array $where = array()) {
+        $values = $this->wrapKeysBackTicks($values);
+        $where = $this->wrapKeysBackTicks($where);
         $setArray = array();
         foreach(array_keys($values) as $key) {
             $setArray[] = "$key = ?";
@@ -96,6 +117,7 @@ class Sequel {
     }
 
     function delete($table, array $where = array()) {
+        $where = $this->wrapKeysBackTicks($where);
         return $this->query(
             "DELETE FROM $table WHERE " . $this->whereSql(array_keys($where)),
             array_values($where)

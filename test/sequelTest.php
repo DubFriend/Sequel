@@ -1,6 +1,5 @@
 <?php
 require_once "sequel.php";
-// require_once "sequelBase.php";
 
 class Sql_Test extends PHPUnit_Framework_TestCase {
     public $Sql, $DB;
@@ -133,10 +132,31 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
         );
     }
 
+    function test_select_wraps_in_backticks() {
+        $this->assertEquals(
+            $this->Sql->select('A', array('select' => 1))->toArray(),
+            array(array("id" => 2,"a" => "bar", "b" => 6, "select" => 1))
+        );
+    }
+
+    function test_select_doesnt_wrap_if_allready_wrapped() {
+        $this->assertEquals(
+            $this->Sql->select('A', array('`select`' => 1))->toArray(),
+            array(array("id" => 2,"a" => "bar", "b" => 6, "select" => 1))
+        );
+    }
+
     function test_selectOne() {
         $this->assertEquals(
             $this->Sql->selectOne("A", array("a" => "foo")),
             array("id" => 1, "a" => "foo", "b" => 5, "select" => null)
+        );
+    }
+
+    function test_selectOne_wraps_in_backticks() {
+        $this->assertEquals(
+            $this->Sql->selectOne("A", array('select' => 1)),
+            array("id" => 2, "a" => "bar", "b" => 6, "select" => 1)
         );
     }
 
@@ -152,6 +172,17 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
         $this->assertEquals(
             $this->Sql->selectOne("A", array("id" => 3)),
             array("id" => 3, "a" => "baz", "b" => null, "select" => null)
+        );
+    }
+
+    /**
+     * @depends test_selectOne
+     */
+    function test_insert_wraps_in_backticks() {
+        $this->Sql->insert("A", array("id" => 3, "select" => 5));
+        $this->assertEquals(
+            $this->Sql->selectOne("A", array("id" => 3)),
+            array("id" => 3, "a" => null, "b" => null, "select" => 5)
         );
     }
 
@@ -180,6 +211,21 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
         );
     }
 
+    /**
+     * @depends test_selectOne
+     */
+    function test_update_wraps_in_backticks() {
+        $this->assertTrue($this->Sql->update(
+            "A",
+            array("select" => 2),
+            array("select" => 1)
+        ));
+        $this->assertEquals(
+            array("id" => 2, "a" => "bar", "b" => 6, "select" => 2),
+            $this->Sql->selectOne("A", array("id" => 2))
+        );
+    }
+
     function test_update_fail() {
         $this->assertFalse(
             $this->Sql->update("A", array("a" => "bar"), array("id" => 1))
@@ -191,6 +237,14 @@ class Sql_Test extends PHPUnit_Framework_TestCase {
      */
     function test_delete() {
         $this->assertTrue($this->Sql->delete("A", array("id" => 2)));
+        $this->assertFalse($this->Sql->selectOne("A", array("id" => 2)));
+    }
+
+    /**
+     * @depends test_selectOne
+     */
+    function test_delete_wraps_in_backticks() {
+        $this->assertTrue($this->Sql->delete("A", array("select" => 1)));
         $this->assertFalse($this->Sql->selectOne("A", array("id" => 2)));
     }
 
